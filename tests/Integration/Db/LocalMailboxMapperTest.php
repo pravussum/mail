@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 /**
- * @copyright 2019 Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @copyright 2022 Anna Larch <anna.larch@gmx.net>
  *
- * @author 2019 Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author 2022 Anna Larch <anna.larch@gmx.net>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -28,7 +28,7 @@ namespace OCA\Mail\Tests\Integration\Db;
 use ChristophWurst\Nextcloud\Testing\DatabaseTransaction;
 use ChristophWurst\Nextcloud\Testing\TestCase;
 use OCA\Mail\Account;
-use OCA\Mail\Db\LocalMailbox;
+use OCA\Mail\Db\LocalMailboxMapper;
 use OCA\Mail\Db\MailboxMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -36,7 +36,7 @@ use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use PHPUnit\Framework\MockObject\MockObject;
 
-class MailboxMapperTest extends TestCase {
+class LocalMailboxMapperTest extends TestCase {
 	use DatabaseTransaction;
 
 	/** @var IDBConnection */
@@ -53,7 +53,7 @@ class MailboxMapperTest extends TestCase {
 
 		$this->db = \OC::$server->getDatabaseConnection();
 		$this->timeFactory = $this->createMock(ITimeFactory::class);
-		$this->mapper = new MailboxMapper(
+		$this->mapper = new LocalMailboxMapper(
 			$this->db,
 			$this->timeFactory
 		);
@@ -63,21 +63,4 @@ class MailboxMapperTest extends TestCase {
 		$delete = $qb->delete($this->mapper->getTableName());
 		$delete->execute();
 	}
-
-
-//	public function testInsert() {
-//		$qb = $this->db->getQueryBuilder();
-//		$insert = $qb->insert($this->mapper->getTableName())
-//			->values([
-//				'type' => $qb->createNamedParameter(LocalMailbox::OUTGOING, IQueryBuilder::PARAM_INT ),
-//				'account_id' => $qb->createNamedParameter(13, IQueryBuilder::PARAM_INT),
-//				'send_at' => $qb->createNamedParameter($this->timeFactory->getTime(), IQueryParameter::PARAM_INT),
-//				'text' => $qb->createNamedParameter('message'),
-//			]);
-//		$insert->execute();
-//
-//		$result = $this->mapper->find($account, 'INBOX');
-//
-//		$this->assertSame('INBOX', $result->getName());
-//	}
 }

@@ -25,10 +25,6 @@ class Version1116Date20220110153658 extends SimpleMigrationStep {
 		/** @var ISchemaWrapper $schema */
 		$schema = $schemaClosure();
 
-		if ($schema->getDatabasePlatform() instanceof PostgreSQL94Platform) {
-			return null;
-		}
-
 		$table = $schema->getTable('mail_messages');
 		if (!$table->hasIndex('mail_messages_id_flags')) {
 			$table->addIndex(['mailbox_id', 'flag_important', 'flag_deleted', 'flag_seen'], 'mail_messages_id_flags');
@@ -36,6 +32,12 @@ class Version1116Date20220110153658 extends SimpleMigrationStep {
 		if (!$table->hasIndex('mail_messages_id_flags2')) {
 			$table->addIndex(['mailbox_id', 'flag_deleted', 'flag_flagged'], 'mail_messages_id_flags2');
 		}
+
+		// Postgres doesn't allow for shortened indices, so let's skip the last index.
+		if ($schema->getDatabasePlatform() instanceof PostgreSQL94Platform) {
+			return $schema;
+		}
+
 		if (!$table->hasIndex('mail_msg_mb_thread_root_sent_idx')) {
 			$table->addIndex(['mailbox_id', 'thread_root_id', 'sent_at'], 'mail_msg_mb_thread_root_sent_idx', [], ['lengths' => [null, 64, null]]);
 		}

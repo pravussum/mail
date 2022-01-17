@@ -41,10 +41,53 @@ class LocalMailboxMapper extends QBMapper {
 	/** @var IL10N */
 	private $l10n;
 
+	/** @var RecipientMapper */
+	private $mapper;
+	/** @var MailAccountMapper */
+	private $accountMapper;
+	/** @var LocalAttachmentMapper */
+	private $attachmentMapper;
+
 	public function __construct(IDBConnection $db,
-								IL10N $l10n) {
+								IL10N         $l10n,
+	MailAccountMapper $accountMapper,
+	LocalAttachmentMapper $attachmentMapper,
+	RecipientMapper                           $recipientMapper) {
 		parent::__construct($db, 'mail_local_mailbox');
 		$this->l10n = $l10n;
+		$this->mapper = $recipientMapper;
+		$this->accountMapper = $accountMapper;
+		$this->attachmentMapper = $attachmentMapper;
 	}
 
+	/**
+	 * @param string $userId
+	 * @return array
+	 * @throws \OCP\DB\Exception
+	 */
+	public function getAllForUser(string $userId): array {
+		$accountIds =  array_map(static function($account) {
+			return $account['id'];
+		},$this->accountMapper->findByUserId($userId));
+
+
+		$qb = $this->db->getQueryBuilder();
+
+		$qb->select('m.*')
+			->from($this->getTableName())
+			->where(
+				$qb->expr()->in('account_id', $qb->createNamedParameter($accountIds, IQueryBuilder::PARAM_INT_ARRAY), IQueryBuilder::PARAM_INT_ARRAY)
+			);
+
+		$result = $qb->execute();
+
+		$messages =  array_map(function(array $row) use ($userId) {
+			$row['attachments'] = $this->attachmentMapper->findForLocalMailbox($row['id'], $userId);
+			$row['recipients'] = $this->mapper->findRecipients($row['id'], Recipient::TYPE_OUTBOX);
+			return $row;
+		}, $result->fetchAll());
+		$result->closeCursor();
+
+		return $messages;
+	}
 }

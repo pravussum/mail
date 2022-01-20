@@ -20,6 +20,12 @@ class Version2000Date20220104144742 extends SimpleMigrationStep {
 	public function changeSchema(IOutput $output, Closure $schemaClosure, array $options): ?ISchemaWrapper {
 		$schema = $schemaClosure();
 
+//		$recipientsTable = $schema->getTable('mail_recipients');
+//		$recipientsTable->addColumn('mailbox_type', 'integer', [
+//			'notnull' => true,
+//			'default' => 0,
+//		]);
+
 		$localMailboxTable = $schema->createTable('mail_local_mailbox');
 		$localMailboxTable->addColumn('id', 'integer', [
 			'autoincrement' => true,
@@ -31,7 +37,7 @@ class Version2000Date20220104144742 extends SimpleMigrationStep {
 			'unsigned' => true,
 			'length' => 1,
 		]);
-		$localMailboxTable->addColumn('account_id', 'integer', [
+		$localMailboxTable->addColumn('account_id', 'string', [
 			'notnull' => true,
 			'length' => 4,
 		]);
@@ -39,14 +45,46 @@ class Version2000Date20220104144742 extends SimpleMigrationStep {
 			'notnull' => false,
 			'length' => 4
 		]);
-		$localMailboxTable->addColumn('text', 'text', [
+		$localMailboxTable->addColumn('subject', 'text', [
 			'notnull' => true,
-			'length' => 16777215, // I think MEDIUMTEXT should be fine for an RFC822/message.
+			'length' => 255
 		]);
-
+		$localMailboxTable->addColumn('body', 'text', [
+			'notnull' => true,
+			'length' => 16777215
+		]);
+		$localMailboxTable->addColumn('html', 'integer', [
+			'notnull' => true,
+			'unsigned' => true,
+			'length' => 1,
+		]);
+		$localMailboxTable->addColumn('mdn', 'integer', [
+			'notnull' => true,
+			'unsigned' => true,
+			'length' => 1,
+		]);
+		$localMailboxTable->addColumn('reply_to_message_id', 'string', [
+			'notnull' => false,
+			'length' => 255,
+		]);
 		$localMailboxTable->setPrimaryKey(['id']);
+
+		$attachmentsTable = $schema->createTable('mail_lcl_mbx_attchmts');
+		$attachmentsTable->addColumn('id', 'integer', [
+			'autoincrement' => true,
+			'notnull' => true,
+			'length' => 4,
+		]);
+		$attachmentsTable->addColumn('local_message_id', 'integer', [
+			'notnull' => true,
+			'length' => 4,
+		]);
+		$attachmentsTable->addColumn('attachment_id', 'integer', [
+			'notnull' => true,
+			'length' => 4,
+		]);
+		$attachmentsTable->setPrimaryKey(['id']);
 
 		return $schema;
 	}
-
 }

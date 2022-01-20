@@ -26,7 +26,6 @@ declare(strict_types=1);
 namespace OCA\Mail\Db;
 
 use JsonSerializable;
-use OCA\Mail\Model\NewMessageData;
 use OCP\AppFramework\Db\Entity;
 
 /**
@@ -36,21 +35,47 @@ use OCP\AppFramework\Db\Entity;
  * @method void setAccountId(int $accountId)
  * @method int getSendAt()
  * @method void setSendAt(int $sendAt)
- * @method string getText()
- * @method void setText(string $rfc822message)
+ * @method string getSubject()
+ * @method void setSubject(string $subject)
+ * @method string getBody()
+ * @method void setBody(string $body)
+ * @method bool isHtml()
+ * @method void setHtml(bool $html)
+ * @method bool isMdn()
+ * @method void setMdn(bool $mdn)
+ * @method string getInReplyToMessageId()
+ * @method void setInReplyToMessageId(string $inReplyToMessageId)
  */
-class LocalMailbox extends Entity implements JsonSerializable {
+class LocalMailboxMessage extends Entity implements JsonSerializable {
 
-	private $type;
-	private $accountId;
-	private $sendAt;
-	private $text;
+	/** @var int */
+	protected $type;
 
-	public CONST OUTGOING = 0;
-	public CONST DRAFT = 1;
+	/** @var int */
+	protected $accountId;
+
+	/** @var int */
+	protected $sendAt;
+
+	/** @var string */
+	protected $text;
+
+	protected $html;
+
+	protected $mdn;
+
+	public const OUTGOING = 0;
+	public const DRAFT = 1;
 
 	public function __construct() {
-		$this->addType('text', 'string');
+		$this->addType('type', 'integer');
+		$this->addType('accountId', 'integer');
+		$this->addType('sendAt', 'integer');
+		$this->addType('subject', 'string');
+		$this->addType('body', 'string');
+		$this->addType('mdn', 'boolean');
+		$this->addType('html', 'boolean');
+		$this->addType('inReplyToMessageId', 'string');
 	}
 	/**
 	 * @return array
@@ -61,7 +86,11 @@ class LocalMailbox extends Entity implements JsonSerializable {
 			'type' => $this->getType(),
 			'accountId' => $this->getAccountId(),
 			'send_at' => $this->getSendAt(),
-			'text' => $this->getText(),
+			'subject' => $this->getSubject(),
+			'text' => $this->getBody(),
+			'html' => $this->isHtml(),
+			'mdn' => $this->isMdn(),
+			'inReplyToMessageId' => $this->getInReplyToMessageId()
 		];
 	}
 }

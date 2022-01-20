@@ -24,6 +24,7 @@ namespace OCA\Mail\Db;
 
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\QBMapper;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
@@ -31,12 +32,15 @@ use OCP\IDBConnection;
  * @template-extends QBMapper<LocalAttachment>
  */
 class LocalAttachmentMapper extends QBMapper {
+	/** @var ITimeFactory */
+	private $timeFactory;
 
 	/**
 	 * @param IDBConnection $db
 	 */
-	public function __construct(IDBConnection $db) {
+	public function __construct(IDBConnection $db, ITimeFactory $timeFactory) {
 		parent::__construct($db, 'mail_attachments');
+		$this->timeFactory = $timeFactory;
 	}
 
 	/**
@@ -56,22 +60,40 @@ class LocalAttachmentMapper extends QBMapper {
 		return $this->findEntity($query);
 	}
 
-	public function findForLocalMailbox(int $messageId, string $userId): array {
+	public function findForLocalMailbox(int $localMessageId, string $userId): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from('mail_lcl_mbx_attchmts')
-			->where($qb->expr()->eq('local_message_id', $qb->createNamedParameter($messageId), IQueryBuilder::PARAM_INT));
+			->where($qb->expr()->eq('local_message_id', $qb->createNamedParameter($localMessageId), IQueryBuilder::PARAM_INT));
 		$result = $qb->execute();
 
-		$attachmentIds = array_map(function($row) {
+		$attachmentIds = array_map(function ($row) {
 			return $row['attachment_id'];
 		}, $result->fetchAll());
 
 		$result->closeCursor();
 
-		return array_map(function($attachmentId) use ($userId) {
+		return array_map(function ($attachmentId) use ($userId) {
 			return $this->find($userId, $attachmentId);
 		}, $attachmentIds);
+	}
 
+	public function createLocalMailboxAttachment(int $localMessageId, string $userId, string $fileName, string $mimetype): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->insert($this->getTableName())
+			->setValue('user_id', $qb->createNamedParameter($userId))
+			->setValue('created_at', $qb->createNamedParameter($this->timeFactory->getTime()))
+			->setValue('file_name', $qb->createNamedParameter($fileName))
+			->setValue('mime_type', $qb->createNamedParameter($mimetype));
+		$result = $qb->execute();
+		$attachmentId = $qb->getLastInsertId();
+		$result->closeCursor();
+
+		$qb2 = $this->db->getQueryBuilder();
+		$qb2->insert('mail_lcl_mbx_attchmts')
+			->setValue('local_message_id', $qb2->createNamedParameter($localMessageId))
+			->setValue('attachment_id', $qb2->createNamedParameter($attachmentId));
+		$result = $qb2->execute();
+		$result->closeCursor();
 	}
 }

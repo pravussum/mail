@@ -25,36 +25,32 @@ declare(strict_types=1);
 
 namespace OCA\Mail\Db;
 
+use OCP\AppFramework\Db\MultipleObjectsReturnedException;
+use OCP\DB\Exception as DBException;
 use function array_map;
-use function array_chunk;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
-use OCP\IL10N;
 
 /**
  * @template-extends QBMapper<Tag>
  */
-class LocalMailboxMapper extends QBMapper {
-
-	/** @var IL10N */
-	private $l10n;
-
+class LocalMailboxMessageMapper extends QBMapper {
 	/** @var RecipientMapper */
 	private $mapper;
+
 	/** @var MailAccountMapper */
 	private $accountMapper;
+
 	/** @var LocalAttachmentMapper */
 	private $attachmentMapper;
 
 	public function __construct(IDBConnection $db,
-								IL10N         $l10n,
-	MailAccountMapper $accountMapper,
-	LocalAttachmentMapper $attachmentMapper,
-	RecipientMapper                           $recipientMapper) {
+								MailAccountMapper $accountMapper,
+								LocalAttachmentMapper $attachmentMapper,
+								RecipientMapper $recipientMapper) {
 		parent::__construct($db, 'mail_local_mailbox');
-		$this->l10n = $l10n;
 		$this->mapper = $recipientMapper;
 		$this->accountMapper = $accountMapper;
 		$this->attachmentMapper = $attachmentMapper;
@@ -63,25 +59,22 @@ class LocalMailboxMapper extends QBMapper {
 	/**
 	 * @param string $userId
 	 * @return array
-	 * @throws \OCP\DB\Exception
+	 * @throws DBException
 	 */
 	public function getAllForUser(string $userId): array {
-		$accountIds =  array_map(static function($account) {
+		$accountIds = array_map(static function ($account) {
 			return $account['id'];
-		},$this->accountMapper->findByUserId($userId));
-
+		}, $this->accountMapper->findByUserId($userId));
 
 		$qb = $this->db->getQueryBuilder();
-
 		$qb->select('m.*')
 			->from($this->getTableName())
 			->where(
 				$qb->expr()->in('account_id', $qb->createNamedParameter($accountIds, IQueryBuilder::PARAM_INT_ARRAY), IQueryBuilder::PARAM_INT_ARRAY)
 			);
-
 		$result = $qb->execute();
 
-		$messages =  array_map(function(array $row) use ($userId) {
+		$messages = array_map(function (array $row) use ($userId) {
 			$row['attachments'] = $this->attachmentMapper->findForLocalMailbox($row['id'], $userId);
 			$row['recipients'] = $this->mapper->findRecipients($row['id'], Recipient::TYPE_OUTBOX);
 			return $row;
@@ -89,5 +82,34 @@ class LocalMailboxMapper extends QBMapper {
 		$result->closeCursor();
 
 		return $messages;
+	}
+
+	/**
+	 * @throws DoesNotExistException
+	 * @throws MultipleObjectsReturnedException
+	 * @throws DBException
+	 */
+	public function find(int $id): LocalMailboxMessage {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('m.*')
+			->from($this->getTableName())
+			->where(
+				$qb->expr()->in('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT), IQueryBuilder::PARAM_INT)
+			);
+		return $this->mapper->findEntity($qb);
+	}
+
+	/**
+	 */
+	public function getRelatedData(int $id, string $userId): array {
+		$related = [];
+		$related['attachments'] = $this->attachmentMapper->findForLocalMailbox($id, $userId);
+		$related['recipients'] = $this->mapper->findRecipients($id, Recipient::TYPE_OUTBOX);
+		return $related;
+	}
+
+	public function saveRelatedData(LocalMailboxMessage $message, array $recipients, array $attachmentIds = []): array {
+		//Todo
+		return [];
 	}
 }

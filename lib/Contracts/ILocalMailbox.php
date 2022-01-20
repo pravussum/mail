@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -25,6 +26,52 @@ declare(strict_types=1);
 
 namespace OCA\Mail\Contracts;
 
+use OCA\Mail\Account;
+use OCA\Mail\Db\LocalMailboxMessage;
+use OCA\Mail\Exception\ClientException;
+use OCA\Mail\Exception\ServiceException;
+
 interface ILocalMailbox {
 
+	/**
+	 * @param string $userID
+	 * @return mixed
+	 */
+	public function getMessages(string $userId): array;
+
+	/**
+	 * @param array $accountIds
+	 * @param int $id
+	 *
+	 * @return LocalMailboxMessage
+	 *
+	 * @throws ServiceException
+	 */
+	public function getMessage(int $id): LocalMailboxMessage;
+
+	/**
+	 * @param LocalMailboxMessage $message
+	 * @param array $recipients
+	 * @param array $attachmentIds
+	 * @return LocalMailboxMessage
+	 */
+	public function saveMessage(LocalMailboxMessage $message, array $recipients, array $attachmentIds = []): LocalMailboxMessage;
+
+	/**
+	 * @param string $userId
+	 * @param int $messageId
+	 *
+	 * @throws ClientException
+	 * @throws ServiceException
+	 */
+	public function deleteMessage(LocalMailboxMessage $message): void;
+
+	/**
+	 * @param LocalMailboxMessage $message
+	 * @param Account $account
+	 * @return bool
+	 * @throws ClientException
+	 * @throws ServiceException
+	 */
+	public function sendMessage(LocalMailboxMessage $message, Account $account): bool;
 }

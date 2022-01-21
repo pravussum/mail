@@ -162,11 +162,6 @@ export default {
 				return false
 			}
 
-			if (mailbox.specialRole === 'outbox') {
-				// OUTBOX is always visible
-				return false
-			}
-
 			if (mailbox.databaseId === account.draftsMailboxId
 				|| mailbox.databaseId === account.sentMailboxId
 				|| mailbox.databaseId === account.trashMailboxId) {
